@@ -1,15 +1,16 @@
 ﻿// See https://github.com/manyeyes for more information
-// Copyright (c)  2025 by manyeyes
+// Copyright (c)  2024 by manyeyes
 using SileroVad.Model;
 
 namespace SileroVad
 {
-    public class OnlineStream
+    public class OfflineStream
     {
         private ModelInputEntity _modelInputEntity;
+        private List<float> _speechProbList = new List<float>();
 
         // model config
-        private Int64 _window_size_samples;  // Assign when init, support 256 512 768 for 8k; 512 1024 1536 for 16k.
+        private int _window_size_samples;  // Assign when init, support 256 512 768 for 8k; 512 1024 1536 for 16k.
         private int _sample_rate;  //Assign when init support 16000 or 8000      
         private int _sr_per_ms;   // Assign when init, support 8 or 16
         private float _threshold;
@@ -39,14 +40,14 @@ namespace SileroVad
         //Onnx Model Output states
         private List<float[]> _states = new List<float[]>();
         //
-        private int _chunkLength = 0;
-        private int _shiftLength = 0;
+        private int _chunkLength = 512;
+        private int _shiftLength = 512;
         private ModelCustomMetadata? _customMetadata;
         //obj of lock
         private static object obj = new object();
         //__DEBUG_SPEECH_PROB___
         private bool _isDebug = false;
-        internal OnlineStream(IVadProj? vadProj)
+        internal OfflineStream(IVadProj? vadProj)
         {
             if (vadProj != null)
             {
@@ -98,155 +99,180 @@ namespace SileroVad
 
         public void PushIndex(float speech_prob)
         {
-            //Current_segment=new SegmentEntity();
-            // Push forward sample index
-            _current_sample += (uint)_window_size_samples;
-
-            // Reset temp_end when > threshold 
-            if (speech_prob >= _threshold)
-            {
-                if (_isDebug)
-                {
-                    float speech = _current_sample - _window_size_samples; // minus window_size_samples to get precise start time point.
-                    Console.WriteLine(string.Format("start: {0} s ({1}) {2}\n", 1.0 * speech / _sample_rate, speech_prob, _current_sample - _window_size_samples));
-                }
-                if (_temp_end != 0)
-                {
-                    _temp_end = 0;
-                    if (_next_start < _prev_end)
-                    {
-                        _next_start = (int)(_current_sample - _window_size_samples);
-                    }
-                }
-                if (!_triggered)
-                {
-                    _triggered = true;
-                    Current_segment.Start = (int)(_current_sample - _window_size_samples);
-                }
-                return;
-            }
-
-            if (
-                _triggered &&
-                (_current_sample - _window_size_samples - Current_segment.Start) > _max_speech_samples
-                )
-            {
-                if (_prev_end > 0)
-                {
-                    Current_segment.End = _prev_end;
-                    Segments.Add(Current_segment);
-                    Current_segment = new SegmentEntity();
-
-                    // previously reached silence(< neg_thres) and is still not speech(< thres)
-                    if (_next_start < _prev_end)
-                    {
-                        _triggered = false;
-                    }
-                    else
-                    {
-                        Current_segment.Start = _next_start;
-                    }
-                    _prev_end = 0;
-                    _next_start = 0;
-                    _temp_end = 0;
-
-                }
-                else
-                {
-                    Current_segment.End = (int)(_current_sample - _window_size_samples);
-                    Segments.Add(Current_segment);
-                    Current_segment = new SegmentEntity();
-                    _prev_end = 0;
-                    _next_start = 0;
-                    _temp_end = 0;
-                    _triggered = false;
-                }
-                return;
-            }
-            if ((speech_prob >= (_threshold - 0.15)) && (speech_prob < _threshold))
-            {
-                if (_triggered)
-                {
-                    if (_isDebug)
-                    {
-                        float speech = _current_sample - _window_size_samples; // minus window_size_samples to get precise start time point.
-                        Console.WriteLine(string.Format("speeking: {0} s ({1}) {2}\n", 1.0 * speech / _sample_rate, speech_prob, _current_sample - _window_size_samples));
-                    }
-                }
-                else
-                {
-                    if (_isDebug)
-                    {
-                        float speech = _current_sample - _window_size_samples; // minus window_size_samples to get precise start time point.
-                        Console.WriteLine(string.Format("silence: {0} s ({1}) {2}\n", 1.0 * speech / _sample_rate, speech_prob, _current_sample - _window_size_samples));
-                    }
-                }
-                return;
-            }
-
-
-            // 4) End 
-            if (speech_prob < _threshold - 0.15)
-            {
-                if (_isDebug)
-                {
-                    float speech = _current_sample - _window_size_samples - _speech_pad_samples; // minus window_size_samples to get precise start time point.
-                    Console.WriteLine(string.Format("end: {0} s ({1}) {2}\n", 1.0 * speech / _sample_rate, speech_prob, _current_sample - _window_size_samples));
-                }
-                if (_triggered)
-                {
-                    if (_temp_end == 0)
-                    {
-                        _temp_end = (uint)(_current_sample - _window_size_samples);
-                    }
-                    if (_current_sample - _window_size_samples - _temp_end > _min_silence_samples_at_max_speech)
-                    {
-                        _prev_end = (int)_temp_end;
-                    }
-                    // a. silence < min_slience_samples, continue speaking 
-                    if ((_current_sample - _window_size_samples - _temp_end) < _min_silence_samples)
-                    {
-
-                    }
-                    // b. silence >= min_slience_samples, end speaking
-                    else
-                    {
-                        Current_segment.End = (int)_temp_end;
-                        if (Current_segment.End - Current_segment.Start > _min_speech_samples)
-                        {
-                            Segments.Add(Current_segment);
-                            Current_segment = new SegmentEntity();
-                            _prev_end = 0;
-                            _next_start = 0;
-                            _temp_end = 0;
-                            _triggered = false;
-                        }
-                    }
-                }
-                else
-                {
-                    // may first windows see end state.
-                }
-                return;
-            }
-            if (Current_segment.Start != null && _audio_length_samples - Current_segment.Start > _min_speech_samples)
-            {
-                Current_segment.End = _audio_length_samples;
-            }
+            _speechProbList.Add(speech_prob);
         }
-
-        public void PushIndexEnd()
+        /// <summary>
+        /// refer to: https://github.com/snakers4/silero-vad/blob/master/examples/csharp/SileroVadDetector.cs#L72
+        /// </summary>
+        public void CalculateProb()
         {
-            if (Current_segment.Start > 0)
+            List<float> speechProbList = _speechProbList;
+            List<SegmentEntity> result = new List<SegmentEntity>();
+            bool triggered = false;
+            int tempEnd = 0, prevEnd = 0, nextStart = 0;
+            SegmentEntity segment = new SegmentEntity();
+
+            for (int i = 0; i < speechProbList.Count; i++)
             {
-                Current_segment.End = _audio_length_samples;
-                Segments.Add(Current_segment);
-                Current_segment = new SegmentEntity();
-                _prev_end = 0;
-                _next_start = 0;
-                _temp_end = 0;
-                _triggered = false;
+                float speechProb = speechProbList[i];
+                if (speechProb >= _threshold && (tempEnd != 0))
+                {
+                    tempEnd = 0;
+                    if (nextStart < prevEnd)
+                    {
+                        nextStart = _window_size_samples * i;
+                    }
+                }
+
+                if (speechProb >= _threshold && !triggered)
+                {
+                    triggered = true;
+                    segment.Start = _window_size_samples * i;
+                    continue;
+                }
+
+                if (triggered && (_window_size_samples * i) - segment.Start > _max_speech_samples)
+                {
+                    if (prevEnd != 0)
+                    {
+                        segment.End = prevEnd;
+                        result.Add(segment);
+                        segment = new SegmentEntity();
+                        if (nextStart < prevEnd)
+                        {
+                            triggered = false;
+                        }
+                        else
+                        {
+                            segment.Start = nextStart;
+                        }
+
+                        prevEnd = 0;
+                        nextStart = 0;
+                        tempEnd = 0;
+                    }
+                    else
+                    {
+                        segment.End = _window_size_samples * i;
+                        result.Add(segment);
+                        segment = new SegmentEntity();
+                        prevEnd = 0;
+                        nextStart = 0;
+                        tempEnd = 0;
+                        triggered = false;
+                        continue;
+                    }
+                }
+
+                if (speechProb < _threshold && triggered)
+                {
+                    if (tempEnd == 0)
+                    {
+                        tempEnd = _window_size_samples * i;
+                    }
+
+                    if (((_window_size_samples * i) - tempEnd) > _min_silence_samples_at_max_speech)
+                    {
+                        prevEnd = tempEnd;
+                    }
+
+                    if ((_window_size_samples * i) - tempEnd < _min_silence_samples)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        segment.End = tempEnd;
+                        if ((segment.End - segment.Start) > _min_speech_samples)
+                        {
+                            result.Add(segment);
+                        }
+
+                        segment = new SegmentEntity();
+                        prevEnd = 0;
+                        nextStart = 0;
+                        tempEnd = 0;
+                        triggered = false;
+                        continue;
+                    }
+                }
             }
+
+            if (segment.Start != null && (_audio_length_samples - segment.Start) > _min_speech_samples)
+            {
+                segment.End = _audio_length_samples;
+                result.Add(segment);
+            }
+
+            for (int i = 0; i < result.Count; i++)
+            {
+                SegmentEntity item = result[i];
+                if (i == 0)
+                {
+                    item.Start = (int)Math.Max(0, item.Start - _speech_pad_samples);
+                }
+
+                if (i != result.Count - 1)
+                {
+                    SegmentEntity nextItem = result[i + 1];
+                    int silenceDuration = nextItem.Start - item.End;
+                    if (silenceDuration < 2 * _speech_pad_samples)
+                    {
+                        item.End = item.End + (silenceDuration / 2);
+                        nextItem.Start = Math.Max(0, nextItem.Start - (silenceDuration / 2));
+                    }
+                    else
+                    {
+                        item.End = (int)Math.Min(_audio_length_samples, item.End + _speech_pad_samples);
+                        nextItem.Start = (int)Math.Max(0, nextItem.Start - _speech_pad_samples);
+                    }
+                }
+                else
+                {
+                    item.End = (int)Math.Min(_audio_length_samples, item.End + _speech_pad_samples);
+                }
+            }
+            _segments = MergeListAndCalculateSecond(result, _sample_rate);
+        }
+        /// <summary>
+        /// refer to: https://github.com/snakers4/silero-vad/blob/master/examples/csharp/SileroVadDetector.cs#L203C39-L203C66
+        /// </summary>
+        private List<SegmentEntity> MergeListAndCalculateSecond(List<SegmentEntity> original, int samplingRate)
+        {
+            List<SegmentEntity> result = new List<SegmentEntity>();
+            if (original == null || original.Count == 0)
+            {
+                return result;
+            }
+
+            int left = original[0].Start;
+            int right = original[0].End;
+            if (original.Count > 1)
+            {
+                original.Sort((a, b) => a.Start.CompareTo(b.Start));
+                for (int i = 1; i < original.Count; i++)
+                {
+                    SegmentEntity segment = original[i];
+
+                    if (segment.Start > right)
+                    {
+                        result.Add(new SegmentEntity(left, right));
+                        left = segment.Start;
+                        right = segment.End;
+                    }
+                    else
+                    {
+                        right = Math.Max(right, segment.End);
+                    }
+                }
+                result.Add(new SegmentEntity(left, right));
+            }
+            else
+            {
+                result.Add(new SegmentEntity(left, right));
+            }
+
+            return result;
         }
 
         public static Int16 Float32ToInt16(float sample)
@@ -351,53 +377,6 @@ namespace SileroVad
                     ModelInputEntity.Speech = featuresTemp;
                     ModelInputEntity.SpeechLength = featuresTemp.Length;
                 }
-            }
-        }
-
-        /// <summary>
-        /// when is endpoint,determine whether it is completed
-        /// </summary>
-        /// <param name="isEndpoint"></param>
-        /// <returns></returns>
-        public bool IsFinished(bool isEndpoint = false)
-        {
-            int featureDim = 1;
-            if (isEndpoint)
-            {
-                int oLen = 0;
-                if (ModelInputEntity.SpeechLength > 0)
-                {
-                    oLen = ModelInputEntity.SpeechLength;
-                }
-                if (oLen > 0)
-                {
-                    var avg = ModelInputEntity.Speech.Average();
-                    int num = ModelInputEntity.Speech.Where(x => x != avg).ToArray().Length;
-                    //int num = ModelInputEntity.Speech.Where(x => (float)Math.Round((double)x, 5) != (float)Math.Round((double)avg, 5)).ToArray().Length;
-                    if (num == 0)
-                    {
-                        PushIndexEnd();
-                        return true;
-                    }
-                    else
-                    {
-                        if (oLen <= _chunkLength * featureDim)
-                        {
-                            AddSamples(new float[1024]);
-                        }
-                        return false;
-                    }
-
-                }
-                else
-                {
-                    PushIndexEnd();
-                    return true;
-                }
-            }
-            else
-            {
-                return false;
             }
         }
     }

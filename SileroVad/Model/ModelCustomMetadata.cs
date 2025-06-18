@@ -10,13 +10,13 @@ namespace SileroVad.Model
 {
     public class ModelCustomMetadata
     {
-        private string? _version="0.1";
+        private string? _version="v4";
         private int _windows_frame_size = 96;
-        private float _threshold = 0.8F;
+        private float _threshold = 0.5F;
         private int _min_silence_duration_ms = 0;
         private int _speech_pad_ms = 96;
         private int _min_speech_duration_ms = 8;
-        private float _max_speech_duration_s = 60.0F; 
+        private float _max_speech_duration_s = 6.0f; 
         private int _segment_start_extend_len = 1024;
         private int _segment_end_extend_len = 896;
 

@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.ML.OnnxRuntime;
 using SileroVad.Model;
 
 namespace SileroVad
@@ -17,11 +16,10 @@ namespace SileroVad
         /// <param name="modelFilePath">模型文件</param>
         /// <param name="configFilePath">配置文件</param>
         /// <param name="threshold">vad 阈值</param>
-        /// <param name="batchSize">batch size 上限</param>
         /// <param name="sampleRate">采样率</param>
         /// <param name="threadsNum">onnx runtime 线程数</param>
         /// <param name="isDebug">是否输出调试日志</param>
-        public OnlineVad(string modelFilePath, string configFilePath = "", float threshold = 0F, int batchSize = 1, int sampleRate = 16000, int threadsNum = 2, bool isDebug = false)
+        public OnlineVad(string modelFilePath, string configFilePath = "", float threshold = 0.5F, int sampleRate = 16000, int threadsNum = 2, bool isDebug = false)
         {
             VadModel vadModel = new VadModel(modelFilePath, configFilePath: configFilePath, threshold: threshold, threadsNum: threadsNum);
             switch (vadModel.CustomMetadata.Version)
@@ -48,9 +46,7 @@ namespace SileroVad
         public List<VadResultEntity> GetResults(List<OnlineStream> streams)
         {
             List<VadResultEntity> segmentEntities = new List<VadResultEntity>();
-#pragma warning disable CS8602 // 解引用可能出现空引用。
-            _forwardBatch.Invoke(streams);
-#pragma warning restore CS8602 // 解引用可能出现空引用。
+            _forwardBatch?.Invoke(streams);
             segmentEntities = this.DecodeMulti(streams);
             return segmentEntities;
         }
@@ -72,11 +68,10 @@ namespace SileroVad
                     streamsTemp.Add(stream);
                     continue;
                 }
-                //iMax++;
                 modelInputEntity.SpeechLength = modelInputEntity.Speech.Length;
                 modelInputs.Add(modelInputEntity);
-                stream.RemoveChunk(stream.ShiftLength);
                 stateList.Add(stream.States);
+                stream.RemoveChunk(stream.ShiftLength);
             }
             if (modelInputs.Count == 0)
             {
@@ -92,14 +87,12 @@ namespace SileroVad
                 List<float[]> stackStatesList = new List<float[]>();
                 stackStatesList = _vadProj.stack_states(stateList);
                 ModelOutputEntity modelOutput = _vadProj.ModelProj(modelInputs, stackStatesList);
-
                 List<List<float[]>> next_statesList = new List<List<float[]>>();
                 next_statesList = _vadProj.unstack_states(modelOutput.ModelOutStates);
                 int streamIndex = 0;
                 foreach (OnlineStream stream in streams)
                 {
                     stream.PushIndex(modelOutput.ModelOut[streamIndex]);
-                    //stream.Timestamps.AddRange(timestamps[streamIndex]);
                     stream.States = next_statesList[streamIndex];
                     streamIndex++;
                 }
@@ -109,7 +102,6 @@ namespace SileroVad
                 //
             }
         }
-
         public List<VadResultEntity> DecodeMulti(List<OnlineStream> streams)
         {
             List<VadResultEntity> vadResultEntities = new List<VadResultEntity>();
@@ -121,43 +113,34 @@ namespace SileroVad
                 if (stream.Segments.Count > stream.LastWaveFormsNum)
                 {
                     stream.LastWaveFormsNum = stream.Segments.Count;
-                    int i = 0;
-                    foreach (SegmentEntity segment in stream.Segments)
+                    int multiple = 1;
+                    if (stream.Segments.Count > 0)
                     {
-                        i++;
-                        //waveform segment
-                        int multiple = 1;
-                        if (i == stream.Segments.Count)
+                        SegmentEntity segment = stream.Segments.Last();
+                        int startExtendLen = 160 * 10;//1024//
+                        int endExtendLen = 160 * 10;//896//
+                        int startExtend = segment.Start * multiple;
+                        if (segment.Start * multiple - startExtendLen > 0)
                         {
-                            int startExtendLen = 160*10;//1024
-                            int endExtendLen = 160*10;//896
-                            int startExtend = segment.Start * multiple;
-                            if (segment.Start * multiple - startExtendLen > 0)// && i==1
-                            {
-                                startExtend = segment.Start * multiple - startExtendLen;
-                            }
-                            int endExtend = segment.End * multiple;
-                            if (stream.Waveform.Length - startExtend - (segment.End * multiple - startExtend) > endExtendLen)
-                            {
-                                endExtend = segment.End * multiple + endExtendLen;
-                            }
-                            float[] waveformItem = new float[endExtend - startExtend];
-
-                            Array.Copy(stream.Waveform, startExtend, waveformItem, segment.Start * multiple - startExtend, endExtend - segment.Start * multiple);
-
-                            vadResultEntity.Waveforms.Add(waveformItem);
+                            startExtend = segment.Start * multiple - startExtendLen;
                         }
-                        else
+                        int endExtend = segment.End * multiple;
+                        if (stream.Waveform.Length - startExtend - (segment.End * multiple - startExtend) > endExtendLen)
                         {
-                            vadResultEntity.Waveforms.Add(null);
+                            endExtend = segment.End * multiple + endExtendLen;
                         }
-                        //waveform segment
+                        float[] waveformItem = new float[endExtend - startExtend];
+
+                        Array.Copy(stream.Waveform, startExtend, waveformItem, segment.Start * multiple - startExtend, endExtend - segment.Start * multiple);
+
+                        vadResultEntity.Waveforms.Add(waveformItem);
+
+                        vadResultEntities.Add(vadResultEntity);
                     }
                 }
-                vadResultEntities.Add(vadResultEntity);
             }
             return vadResultEntities;
         }
-        
+
     }
 }
