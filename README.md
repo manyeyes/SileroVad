@@ -8,7 +8,7 @@ c# library for decoding silero vad Models，used in speech activity detection
 ##### 支持的模型（ONNX）
 
 | 模型名称  |  类型 | 下载地址  |
-| ------------ | ------------ | ------------ | ------------ | ------------ | ------------ |
+| ------------ | ------------ | ------------ |
 |  silero-vad-v5-onnx | 端点检测  | [modelscope](https://modelscope.cn/models/manyeyes/silero-vad-v5-onnx "modelscope") |
 |  silero-vad-onnx | 端点检测  | [modelscope](https://modelscope.cn/models/manyeyes/silero-vad-onnx "modelscope") |
 
