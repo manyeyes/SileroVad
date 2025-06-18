@@ -17,11 +17,10 @@ namespace SileroVad
         /// <param name="modelFilePath">模型文件</param>
         /// <param name="configFilePath">配置文件</param>
         /// <param name="threshold">vad 阈值</param>
-        /// <param name="batchSize">batch size 上限</param>
         /// <param name="sampleRate">采样率</param>
         /// <param name="threadsNum">onnx runtime 线程数</param>
         /// <param name="isDebug">是否输出调试日志</param>
-        public OfflineVad(string modelFilePath, string configFilePath = "", float threshold = 0F, int batchSize = 1, int sampleRate = 16000, int threadsNum = 2, bool isDebug = false)
+        public OfflineVad(string modelFilePath, string configFilePath = "", float threshold = 0.5F, int sampleRate = 16000, int threadsNum = 2, bool isDebug = false)
         {
             VadModel vadModel = new VadModel(modelFilePath, configFilePath: configFilePath, threshold: threshold, threadsNum: threadsNum);
             switch (vadModel.CustomMetadata.Version)

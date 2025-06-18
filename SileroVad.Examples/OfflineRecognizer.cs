@@ -18,13 +18,13 @@ namespace SileroVad.Examples
                 _offlineRecognizer = new OfflineRecognizer(modelFilePath: modelFilePath, configFilePath: configFilePath, mvnFilePath, tokensFilePath: tokensFilePath);
                 TimeSpan end_time = new TimeSpan(DateTime.Now.Ticks);
                 double elapsed_milliseconds_init = end_time.TotalMilliseconds - start_time.TotalMilliseconds;
-                Console.WriteLine("loading_the_model_elapsed_milliseconds:{0}", elapsed_milliseconds_init.ToString());
+                Console.WriteLine("loading asr model elapsed_milliseconds:{0}", elapsed_milliseconds_init.ToString());
             }
             return _offlineRecognizer;
         }
         public static void OfflineRecognizer(List<float[]>? samples = null)
         {
-            string modelName = "speech_paraformer-large-zh-cn-16k-timestamp-vocab8404-onnx";
+            string modelName = "aliparaformerasr-large-zh-en-timestamp-onnx-offline";
             OfflineRecognizer offlineRecognizer = initOfflineRecognizer(modelName);
             TimeSpan total_duration = new TimeSpan(0L);
             if (samples == null)

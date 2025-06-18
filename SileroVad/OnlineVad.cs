@@ -16,11 +16,10 @@ namespace SileroVad
         /// <param name="modelFilePath">模型文件</param>
         /// <param name="configFilePath">配置文件</param>
         /// <param name="threshold">vad 阈值</param>
-        /// <param name="batchSize">batch size 上限</param>
         /// <param name="sampleRate">采样率</param>
         /// <param name="threadsNum">onnx runtime 线程数</param>
         /// <param name="isDebug">是否输出调试日志</param>
-        public OnlineVad(string modelFilePath, string configFilePath = "", float threshold = 0F, int batchSize = 1, int sampleRate = 16000, int threadsNum = 2, bool isDebug = false)
+        public OnlineVad(string modelFilePath, string configFilePath = "", float threshold = 0.5F, int sampleRate = 16000, int threadsNum = 2, bool isDebug = false)
         {
             VadModel vadModel = new VadModel(modelFilePath, configFilePath: configFilePath, threshold: threshold, threadsNum: threadsNum);
             switch (vadModel.CustomMetadata.Version)
@@ -142,54 +141,6 @@ namespace SileroVad
             }
             return vadResultEntities;
         }
-        //public List<VadResultEntity> DecodeMulti(List<OnlineStream> streams)
-        //{
-        //    List<VadResultEntity> vadResultEntities = new List<VadResultEntity>();
-        //    foreach (OnlineStream stream in streams)
-        //    {
-        //        VadResultEntity vadResultEntity = new VadResultEntity();
-        //        vadResultEntity.Segments = stream.Segments;
-        //        vadResultEntity.Waveforms = new List<float[]>();
-        //        if (stream.Segments.Count > stream.LastWaveFormsNum)
-        //        {
-        //            stream.LastWaveFormsNum = stream.Segments.Count;
-        //            int i = 0;
-        //            foreach (SegmentEntity segment in stream.Segments)
-        //            {
-        //                i++;
-        //                //waveform segment
-        //                int multiple = 1;
-        //                if (i == stream.Segments.Count)
-        //                {
-        //                    int startExtendLen = 160*10;//1024//
-        //                    int endExtendLen = 160*10;//896//
-        //                    int startExtend = segment.Start * multiple;
-        //                    if (segment.Start * multiple - startExtendLen > 0)// && i==1
-        //                    {
-        //                        startExtend = segment.Start * multiple - startExtendLen;
-        //                    }
-        //                    int endExtend = segment.End * multiple;
-        //                    if (stream.Waveform.Length - startExtend - (segment.End * multiple - startExtend) > endExtendLen)
-        //                    {
-        //                        endExtend = segment.End * multiple + endExtendLen;
-        //                    }
-        //                    float[] waveformItem = new float[endExtend - startExtend];
-
-        //                    Array.Copy(stream.Waveform, startExtend, waveformItem, segment.Start * multiple - startExtend, endExtend - segment.Start * multiple);
-
-        //                    vadResultEntity.Waveforms.Add(waveformItem);
-        //                }
-        //                else
-        //                {
-        //                    vadResultEntity.Waveforms.Add(null);
-        //                }
-        //                //waveform segment
-        //            }
-        //        }
-        //        vadResultEntities.Add(vadResultEntity);
-        //    }
-        //    return vadResultEntities;
-        //}
 
     }
 }

@@ -1,11 +1,4 @@
-﻿using AliParaformerAsr;
-using SileroVad.Examples.Utils;
-using SileroVad.Model;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using SileroVad.Examples.Utils;
 
 namespace SileroVad.Examples
 {
@@ -21,13 +14,11 @@ namespace SileroVad.Examples
                     TimeSpan start_time0 = new TimeSpan(DateTime.Now.Ticks);
                     string modelFilePath = applicationBase + "./" + modelName + "/silero_vad.onnx";
                     string configFilePath = applicationBase + "./" + modelName + "/vad.yaml";
-                    //string langFilePath = applicationBase + "./" + modelName + "/vad.yaml";
-                    //string langGroupFilePath = applicationBase + "./" + modelName + "/vad.mvn";
                     int batchSize = 2;
-                    _offlineVad = new OfflineVad(modelFilePath, configFilePath: configFilePath, threshold: 0.5f, batchSize: batchSize, isDebug: false);
+                    _offlineVad = new OfflineVad(modelFilePath, configFilePath: configFilePath, threshold: 0.5f, isDebug: false);
                     TimeSpan end_time0 = new TimeSpan(DateTime.Now.Ticks);
                     double elapsed_milliseconds0 = end_time0.TotalMilliseconds - start_time0.TotalMilliseconds;
-                    Console.WriteLine("load model and init config elapsed_milliseconds:{0}", elapsed_milliseconds0.ToString());
+                    Console.WriteLine("load vad model elapsed_milliseconds:{0}", elapsed_milliseconds0.ToString());
                 }
             }
             catch (Exception ex)
@@ -50,7 +41,7 @@ namespace SileroVad.Examples
             {
                 samples = new List<float[]>();
                 int batchSize = 1;
-                int startIndex = 1;
+                int startIndex = 0;
                 for (int n = startIndex; n < startIndex + batchSize; n++)
                 {
                     string wavFilePath = string.Format(applicationBase + "./" + modelName + "/example/{0}.wav", n.ToString());//vad_example
@@ -62,15 +53,6 @@ namespace SileroVad.Examples
                     float[]? sample = AudioHelper.GetFileSamples(wavFilePath, ref duration);
                     samples.Add(sample);
                     total_duration += duration;
-                    //AudioFileReader _audioFileReader = new AudioFileReader(wavFilePath);
-                    //byte[] datas = new byte[_audioFileReader.Length];
-                    //_audioFileReader.Read(datas, 0, datas.Length);
-                    //TimeSpan duration = _audioFileReader.TotalTime;
-                    //float[] sample = new float[datas.Length / 4];
-                    //Buffer.BlockCopy(datas, 0, sample, 0, datas.Length);
-                    ////sample = sample.Select((float x) => x * 32768f).ToArray();
-                    //samples.Add(sample);
-                    //total_duration += duration;
                 }
             }
 
