@@ -127,7 +127,7 @@ namespace SileroVad
             int batchSize = modelInputs.Count;
             int sampleRate = (int)statesList[0][0];
             int contextSize = sampleRate == 16000 ? 64 : 32;
-            modelInputs = modelInputs.Select(x => { x.Speech = new float[contextSize].Select(x => x = float.PositiveInfinity).Concat(x.Speech).ToArray(); x.SpeechLength += contextSize; return x; }).ToList();
+            modelInputs = modelInputs.Select(x => { x.Speech = new float[contextSize].Select(x => x = float.PositiveInfinity).Concat(x.Speech.Select((float x) => x * 32768.0f)).ToArray(); x.SpeechLength += contextSize; return x; }).ToList();
             float[] padSequence = PadHelper.PadSequence(modelInputs);
             padSequence = padSequence.Select(x => x == float.PositiveInfinity ? 0f : x).ToArray();
             float[] state = statesList[1];
