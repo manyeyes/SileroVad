@@ -1,12 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
-using SileroVad.Model;
+﻿using SileroVad.Model;
 
 namespace SileroVad
 {
     delegate void ForwardBatchOnline(List<OnlineStream> streams);
     public class OnlineVad
     {
-        private readonly ILogger<OnlineVad> _logger;
         private IVadProj? _vadProj;
         private ForwardBatchOnline? _forwardBatch;
 
@@ -19,7 +17,7 @@ namespace SileroVad
         /// <param name="sampleRate">采样率</param>
         /// <param name="threadsNum">onnx runtime 线程数</param>
         /// <param name="isDebug">是否输出调试日志</param>
-        public OnlineVad(string modelFilePath, string configFilePath = "", float threshold = 0.5F, int sampleRate = 16000, int threadsNum = 2, bool isDebug = false)
+        public OnlineVad(string modelFilePath, string configFilePath = "", float threshold = 0F, int sampleRate = 16000, int threadsNum = 2, bool isDebug = false)
         {
             VadModel vadModel = new VadModel(modelFilePath, configFilePath: configFilePath, threshold: threshold, threadsNum: threadsNum);
             switch (vadModel.CustomMetadata.Version)
@@ -28,13 +26,11 @@ namespace SileroVad
                     _vadProj = new VadProj(vadModel, sampleRate, isDebug);
                     break;
                 case "v5":
+                case "v6":
                     _vadProj = new VadProjOfV5(vadModel, sampleRate, isDebug);
                     break;
             }
             _forwardBatch = new ForwardBatchOnline(this.ForwardBatch);
-
-            ILoggerFactory loggerFactory = new LoggerFactory();
-            _logger = new Logger<OnlineVad>(loggerFactory);
         }
 
         public OnlineStream CreateOnlineStream()
@@ -117,8 +113,8 @@ namespace SileroVad
                     if (stream.Segments.Count > 0)
                     {
                         SegmentEntity segment = stream.Segments.Last();
-                        int startExtendLen = 160 * 10;//1024//
-                        int endExtendLen = 160 * 10;//896//
+                        int startExtendLen = _vadProj.CustomMetadata.Segment_start_extend_len;
+                        int endExtendLen = _vadProj.CustomMetadata.Segment_end_extend_len;
                         int startExtend = segment.Start * multiple;
                         if (segment.Start * multiple - startExtendLen > 0)
                         {
@@ -132,7 +128,8 @@ namespace SileroVad
                         float[] waveformItem = new float[endExtend - startExtend];
 
                         Array.Copy(stream.Waveform, startExtend, waveformItem, segment.Start * multiple - startExtend, endExtend - segment.Start * multiple);
-
+                        Array.Resize(ref waveformItem, waveformItem.Length + 2400);
+                        Array.Copy(new float[400], 0, waveformItem, 0, 400);
                         vadResultEntity.Waveforms.Add(waveformItem);
 
                         vadResultEntities.Add(vadResultEntity);
