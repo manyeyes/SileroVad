@@ -4,8 +4,10 @@ using SileroVad.Model;
 
 namespace SileroVad
 {
-    public class OnlineStream
+    public class OnlineStream:IDisposable
     {
+        bool _disposed;
+
         private ModelInputEntity _modelInputEntity;
 
         // model config
@@ -399,6 +401,34 @@ namespace SileroVad
             {
                 return false;
             }
+        }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    if (_segments != null)
+                    {
+                        _segments = null;
+                    }
+                    if (_current_segment != null)
+                    {
+                        _current_segment = null;
+                    }
+                }
+                _disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+        ~OnlineStream()
+        {
+            Dispose(_disposed);
         }
     }
 }

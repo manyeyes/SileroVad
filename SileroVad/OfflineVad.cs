@@ -3,8 +3,10 @@
 namespace SileroVad
 {
     delegate void ForwardBatchOffline(List<OfflineStream> streams);
-    public class OfflineVad
+    public class OfflineVad : IDisposable
     {
+        private bool _disposed;
+
         private IVadProj? _vadProj;
         private ForwardBatchOffline? _forwardBatch;
 
@@ -37,6 +39,14 @@ namespace SileroVad
         {
             OfflineStream offlineStream = new OfflineStream(_vadProj);
             return offlineStream;
+        }
+        public VadResultEntity GetResult(OfflineStream stream)
+        {
+            List<OfflineStream> streams = new List<OfflineStream>();
+            streams.Add(stream);
+            VadResultEntity vadResultEntity = GetResults(streams)[0];
+
+            return vadResultEntity;
         }
 
         public List<VadResultEntity> GetResults(List<OfflineStream> streams)
@@ -145,6 +155,33 @@ namespace SileroVad
             }
             return vadResultEntities;
         }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    if (_vadProj != null)
+                    {
+                        _vadProj.Dispose();
+                    }
+                    if (_forwardBatch != null)
+                    {
+                        _forwardBatch = null;
+                    }
+                }
+                _disposed = true;
+            }
+        }
 
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+        ~OfflineVad()
+        {
+            Dispose(_disposed);
+        }
     }
 }
