@@ -13,7 +13,33 @@
 				<LangVersion>10</LangVersion>
 				<ImplicitUsings>enable</ImplicitUsings>
 				<Nullable>enable</Nullable>
+				<!-- info -->
+				<PackageId>ManySpeech.SileroVad</PackageId>
+				<Version>1.1.0</Version>
+				<Authors>manyeyes contributors</Authors>
+				<Company>manyeyes contributors</Company>
+				<Copyright>Copyright © manyeyes contributors</Copyright>
+				<Summary>C# voice activity detection library for speech activity detection based on the Silero VAD model</Summary>
+				<Description>SileroVad is a Voice Activity Detection (VAD) library developed in C#, with ONNX model decoding implemented under the hood using `Microsoft.ML.OnnxRuntime`. This library features the following: 1.Multi-framework support: Compatible with .NET Framework 4.6.1+, .NET 6.0+, .NET Core 3.1, and .NET Standard 2.0+; 2.Cross-platform capability: Supports Windows, macOS, Linux, and other systems, enabling cross-platform compilation; 3.Flexible deployment: Supports AOT (Ahead-of-Time) compilation and is simple and convenient to use.</Description>
+				<PackageTags>voice activity detection silero vad ai local privacy</PackageTags>
+				<PackageProjectUrl>https://github.com/manyeyes/SileroVad</PackageProjectUrl>
+				<RepositoryUrl>https://github.com/manyeyes/SileroVad</RepositoryUrl>
+				<IncludeSymbols>true</IncludeSymbols>
+				<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+				<Nullable>enable</Nullable>
+				<LangVersion>latest</LangVersion>
+				<PackageReadmeFile>App_Readme/README.EN.md</PackageReadmeFile>
+				<PackageLicenseFile>App_Readme/LICENSE</PackageLicenseFile>
+				<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+				<!--<PackageOutputPath>$(ArtifactsPath)\package</PackageOutputPath>-->
+				<Readme>App_Readme/README.md</Readme>
 		</PropertyGroup>
+
+		<ItemGroup>
+				<None Include="..\README.md" Pack="true" PackagePath="App_Readme/" Visible="false" />
+				<None Include="..\README.EN.md" Pack="true" PackagePath="App_Readme/" Visible="false" />
+				<None Include="..\LICENSE" Pack="true" PackagePath="App_Readme/" Visible="false" />
+		</ItemGroup>
 
 		<ItemGroup>
 				<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.22.1" />

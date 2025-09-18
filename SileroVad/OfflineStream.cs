@@ -4,8 +4,10 @@ using SileroVad.Model;
 
 namespace SileroVad
 {
-    public class OfflineStream
+    public class OfflineStream:IDisposable
     {
+        bool _disposed;
+
         private ModelInputEntity _modelInputEntity;
         private List<float> _speechProbList = new List<float>();
 
@@ -378,6 +380,34 @@ namespace SileroVad
                     ModelInputEntity.SpeechLength = featuresTemp.Length;
                 }
             }
+        }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    if (_segments != null)
+                    {
+                        _segments=null;
+                    }
+                    if (_current_segment != null)
+                    {
+                        _current_segment = null;
+                    }
+                }
+                _disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+        ~OfflineStream()
+        {
+            Dispose(_disposed);
         }
     }
 }
