@@ -22,7 +22,7 @@ namespace SileroVad
         public OnlineVad(string modelFilePath, string configFilePath = "", float threshold = 0F, int sampleRate = 16000, int threadsNum = 2, bool isDebug = false)
         {
             VadModel vadModel = new VadModel(modelFilePath, configFilePath: configFilePath, threshold: threshold, threadsNum: threadsNum);
-            switch (vadModel.CustomMetadata.Version)
+            switch (vadModel.CustomMetadata.version)
             {
                 case "v4":
                     _vadProj = new VadProj(vadModel, sampleRate, isDebug);
@@ -104,7 +104,7 @@ namespace SileroVad
             }
             catch (Exception ex)
             {
-                //
+                throw new Exception("Online vad failed", ex);
             }
         }
         public List<VadResultEntity> DecodeMulti(List<OnlineStream> streams)
@@ -122,8 +122,8 @@ namespace SileroVad
                     if (stream.Segments.Count > 0)
                     {
                         SegmentEntity segment = stream.Segments.Last();
-                        int startExtendLen = _vadProj.CustomMetadata.Segment_start_extend_len;
-                        int endExtendLen = _vadProj.CustomMetadata.Segment_end_extend_len;
+                        int startExtendLen = _vadProj.CustomMetadata.segment_start_extend_len;
+                        int endExtendLen = _vadProj.CustomMetadata.segment_end_extend_len;
                         int startExtend = segment.Start * multiple;
                         if (segment.Start * multiple - startExtendLen > 0)
                         {

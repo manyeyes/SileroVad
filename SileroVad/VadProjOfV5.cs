@@ -183,7 +183,7 @@ namespace SileroVad
             }
             catch (Exception ex)
             {
-                //
+                throw new Exception("ModelProj failed", ex);
             }
             return modelOutput;
         }

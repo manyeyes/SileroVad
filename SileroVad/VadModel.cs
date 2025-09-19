@@ -18,7 +18,7 @@ namespace SileroVad
             }
             if (threshold > 0F)
             {
-                _customMetadata.Threshold = threshold;
+                _customMetadata.threshold = threshold;
             }
             //var encoder_meta = _modelSession.ModelMetadata.CustomMetadataMap;
             //_customMetadata.Version = encoder_meta.ContainsKey("version") ? encoder_meta["version"] : "";
