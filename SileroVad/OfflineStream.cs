@@ -81,21 +81,21 @@ namespace SileroVad
 
         public void InitStream()
         {
-            _threshold = _customMetadata.Threshold;
+            _threshold = _customMetadata.threshold;
             _sr_per_ms = _sample_rate / 1000;
 
-            _window_size_samples = _sr_per_ms * _customMetadata.Windows_frame_size;
+            _window_size_samples = _sr_per_ms * _customMetadata.windows_frame_size;
 
-            _min_speech_samples = _sr_per_ms * _customMetadata.Min_speech_duration_ms;
-            _speech_pad_samples = _sr_per_ms * _customMetadata.Speech_pad_ms;
+            _min_speech_samples = _sr_per_ms * _customMetadata.min_speech_duration_ms;
+            _speech_pad_samples = _sr_per_ms * _customMetadata.speech_pad_ms;
 
             _max_speech_samples = (
-                _sample_rate * _customMetadata.Max_speech_duration_s
+                _sample_rate * _customMetadata.max_speech_duration_s
                 - _window_size_samples
                 - 2 * _speech_pad_samples
                 );
 
-            _min_silence_samples = _sr_per_ms * _customMetadata.Min_silence_duration_ms;
+            _min_silence_samples = _sr_per_ms * _customMetadata.min_silence_duration_ms;
             _min_silence_samples_at_max_speech = _sr_per_ms * 98;
         }
 
